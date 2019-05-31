@@ -448,3 +448,7 @@ healthchecksdb
 
 # Backup folder for Package Reference Convert tool in Visual Studio 2017
 MigrationBackup/
+
+# management build tools related
+tools/LocalNugetFeed/Microsoft.Internal.NetSdkBuild.Mgmt.Tools.*.nupkg
+restoredPackages/

@@ -1,0 +1,11 @@
+<Project DefaultTargets="BuildToolsPackage" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">	
+	<Import Project="src/dotnet/Mgmt.CI.BuildTools/ci.buildtools.props" />
+    <Import Project="src/dotnet/Mgmt.CI.BuildTools/ci.buildtools.targets" />
+
+	<Target Name="Clean" DependsOnTargets="$(CleanProjectDependsOn)" />
+	<Target Name="Build" DependsOnTargets="$(BuildProjectDependsOn)" />
+	<Target Name="ReBuild" DependsOnTargets="Clean;Build" />
+	<Target Name="RestoreProjects" DependsOnTargets="$(RestoreProjectDependsOn)" />
+	<Target Name="BuildToolsPackage" DependsOnTargets="$(BuildToolsPackageDependsOn)" />
+	<Target Name="PublishNugetPackage" DependsOnTargets="$(PublishNugetPackageDependsOn)" />
+</Project>

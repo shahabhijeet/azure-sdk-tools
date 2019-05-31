@@ -1,0 +1,9 @@
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<!-- <Import Project="$(NetSdkBuildTargetsDir)\core\_test.props" Condition=" Exists('$(NetSdkBuildTargetsDir)\core\_test.props') "/> -->
+	<ItemGroup>
+		<PackageReference Include="xunit" Version="2.3.1" />
+		<PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.7.0" />
+		<DotNetCliToolReference Include="dotnet-xunit" Version="2.3.1" />
+	</ItemGroup>
+</Project>
