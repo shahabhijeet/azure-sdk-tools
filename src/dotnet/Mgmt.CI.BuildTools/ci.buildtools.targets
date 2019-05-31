@@ -168,7 +168,7 @@
             Properties="Configuration=$(Configuration);
             NuspecFile=$(CINuspecFile);
             VisualStudioVersion=$(VisualStudioVersion); 
-            PackageOutputPath=$(RepoNugetFeedDir); 
+            PackageOutputPath=$(PackageOutputPath); 
             IncludeBuildOutput=false;
             NoPackageAnalysis=true; 
             IncludeSymbols=false;
