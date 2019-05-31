@@ -28,6 +28,9 @@ namespace BuildTasks.Tests
 
         public CategorizeProjectTaskTest(ITestOutputHelper output)
         {
+            //create an env. variable 'testAssetdir' and point to a directory that will host multiple repos
+            // e.g. sdkfornet directory structure as well as Fluent directory structure
+            // basically test asset directory will be the root for all other repos that can be used for testing directory structure
             rootDir = this.TestAssetsDirPath;
             rootDir = Path.Combine(rootDir, "sdkForNet");
             sourceRootDir = rootDir;

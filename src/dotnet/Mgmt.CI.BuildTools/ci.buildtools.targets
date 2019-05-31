@@ -90,9 +90,8 @@
             DestinationFolder="$(CINugetPackageDeployDirPath)" SkipUnchangedFiles="true" />
     </Target>
     
-    <Target Name="PublishTasksProjects">
+    <Target Name="PublishTasksProjects" DependsOnTargets="PublishNet461">
         <PropertyGroup>
-            <NugPkgPublishDir Condition=" '$(Scope)' == 'stos' OR '$(Scope)' == 'STOS' ">$(SToSNugPkgPublish_NetStd20Dir)</NugPkgPublishDir>
             <NugPkgPublishDir Condition=" '$(NugPkgPublishDir)' == '' AND ( '$(Scope)' == 'ci' OR '$(Scope)' == 'CI' ) ">$(CINugPkgPublish_NetStd20Dir)</NugPkgPublishDir>
         </PropertyGroup>
 
@@ -101,23 +100,36 @@
 
         <Exec Command="dotnet publish %(ProjectsToPublish.Identity) -f netstandard2.0 -o $(NugPkgPublishDir) -r win10-x64"  />
         <!--
-        <Exec Command="dotnet publish %(ProjectsToPublish.Identity) -f netstandard2.0 -o $(PublishLinuxNetStd20Dir) -r ubuntu-x64" />        
+        <Exec Command="dotnet publish %(ProjectsToPublish.Identity) -f netstandard2.0 -o $(PublishLinuxNetStd20Dir) -r ubuntu-x64" />       
+        Condition=" '$(PublishNet461)' == 'true' "         
+            Condition=" '$(PublishNet461)' == 'true' "
         -->
     </Target>
 
-    <Target Name="PublishNet461" Condition=" '$(PublishNet461)' == 'true' ">    
+    <Target Name="PublishNet461">
+        <Message Text="Publishingnet461....." Importance="High" />
         <MSBuild Targets="Publish"
             Projects="@(ProjectsToPublish)"
-            Properties="Configuration=$(Configuration);TargetFramework=net461;PublishDir=$(SToSNugPkgPublish_Net461Dir)"
+            Properties="Configuration=$(Configuration);TargetFramework=net461;PublishDir=$(CINugPkgPublish_Net461Dir)"
             BuildInParallel="$(BuildInParallel)"
-            ContinueOnError="ErrorAndStop"
-            Condition=" '$(PublishNet461)' == 'true' " />
+            ContinueOnError="ErrorAndStop" />
         
+        <PropertyGroup>
+            <PlatWin32DirPath>$(CINugPkgPublish_Net461Dir)\lib\win32\x64</PlatWin32DirPath>
+        </PropertyGroup>
         <ItemGroup>
-            <Net461NativeFilesToBeCopied Include="$(SToSNugPkgPublish_Net461Dir)\lib\win32\x64\*.*" />
+            <Net461NativeFilesToBeCopied Include="$(PlatWin32DirPath)\*.*" />
         </ItemGroup>
+        
 
-        <Copy SourceFiles="@(Net461NativeFilesToBeCopied)" DestinationFolder="$(SToSNugPkgPublish_Net461Dir)" SkipUnchangedFiles="true" />
+        <Message Text="Copying Platform specific files...." Importance="High" />
+        <PropertyGroup>
+            <destDir>$(PlatWin32DirPath)\..\..\..\</destDir>
+        </PropertyGroup>
+
+        <Message Text="Destination Dir.... $(destDir)" Importance="High" />
+
+        <Copy SourceFiles="@(Net461NativeFilesToBeCopied)" DestinationFolder="$(PlatWin32DirPath)\..\..\..\" SkipUnchangedFiles="true" />
     </Target>
 
     <Target Name="CleanToolsPackage">
@@ -176,6 +188,9 @@
 		<Message Text="RepoSrcDir=========$(RepoSrcDir)" />
 		<Message Text="RepoTaskSrcDir=========$(RepoTaskSrcDir)" />
         <Message Text="RepoTaskBinaryOutputDir ....$(RepoTaskBinaryOutputDir)" />
+        <Message Text="OutputPath ....$(OutputPath)" />  
+        <Message Text="IntermediateOutputPath .... $(IntermediateOutputPath)" />  
+        
 
         <Message Text=" "/>
 		<Message Text="RepoCISrcDir=========$(RepoCISrcDir)" />

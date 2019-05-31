@@ -28,10 +28,10 @@
     <file src="..\bin\Debug\build\tasks\net461\**\*.*" target="tasks\net461" />
 -->
 
-    <file src="$(OutputPath)\build\targets\**\*.*" target="targets" />
-    <file src="$(OutputPath)\build\tasks\**\*.*" target="tasks" />
-    <file src="$(OutputPath)\build\Sdk\*.*" target="Sdk" />
-    <file src="$(OutputPath)\build\tasks\netstandard2.0\**\*.*" target="tasks\netstandard2.0" />
-    <file src="$(OutputPath)\build\tasks\net461\**\*.*" target="tasks\net461" />
+    <file src="..\build\targets\**\*.*" target="targets" />
+    <file src="..\build\tasks\**\*.*" target="tasks" />
+    <file src="..\build\Sdk\*.*" target="Sdk" />
+    <file src="..\build\tasks\netstandard2.0\**\*.*" target="tasks\netstandard2.0" />
+    <file src="..\build\tasks\net461\**\*.*" target="tasks\net461" />
   </files>  
 </package>

@@ -34,16 +34,27 @@ namespace Tests.CI.Common.Base
 
         public bool IsDisposed { get; private set; }
         #region Dir Paths
+
+        /// <summary>
+        /// Any directory that will host testAssets directory
+        /// TestAssets directory is meant to be root for multiple repository directory structre
+        /// e.g. root directory that will host sdk-for-net directory structure or Fluet for.NET directory structure
+        /// </summary>
         public string TestAssetsDirPath
         {
             get
             {
                 if(string.IsNullOrWhiteSpace(_testAssetDirPath))
                 {
-                    _testAssetDirPath = FileSys.TraverseUptoRootWithDirToken(TEST_ASSETS_DIR_NAME);
-                    if(Directory.Exists(_testAssetDirPath))
+                    _testAssetDirPath = Environment.GetEnvironmentVariable("testAssetDir");
+
+                    if(string.IsNullOrEmpty(_testAssetDirPath))
                     {
-                        _testAssetDirPath = Path.Combine(_testAssetDirPath, TEST_ASSETS_DIR_NAME);
+                        _testAssetDirPath = FileSys.TraverseUptoRootWithDirToken(TEST_ASSETS_DIR_NAME);
+                        if (Directory.Exists(_testAssetDirPath))
+                        {
+                            _testAssetDirPath = Path.Combine(_testAssetDirPath, TEST_ASSETS_DIR_NAME);
+                        }
                     }
                 }
 
@@ -51,6 +62,11 @@ namespace Tests.CI.Common.Base
             }
         }
 
+        /// <summary>
+        /// SDK-FOR-NET root directory
+        /// e.g. root\sdk\Compute
+        /// e.g. root\src\SDKs\Compute
+        /// </summary>
         public string TestAssetSdkForNetDirPath
         {
             get
