@@ -323,7 +323,7 @@ namespace MS.Az.Mgmt.CI.Common.Services
         }
 
         /// <summary>
-        /// Get List of files of in a particular PR Number
+        /// Get List of files of in a particular PR Number for given repo
         /// </summary>
         /// <param name="repoName"></param>
         /// <param name="prNumber"></param>
@@ -331,7 +331,21 @@ namespace MS.Az.Mgmt.CI.Common.Services
         public IEnumerable<string> GetPullRequestFileList(string repoName, long prNumber)
         {
             Repository repo = GetRepository(repoName);
-            IReadOnlyList<PullRequestFile> prFiles = OC.PullRequest.Files(repo.Id, (int)prNumber).GetAwaiter().GetResult();
+            return GetPullRequestFileList(repo.Id, prNumber);
+            //IReadOnlyList<PullRequestFile> prFiles = OC.PullRequest.Files(repo.Id, (int)prNumber).GetAwaiter().GetResult();
+            //IEnumerable<string> filePathList = prFiles.Select<PullRequestFile, string>((item) => item.FileName);
+            //return filePathList;
+        }
+
+        /// <summary>
+        /// Get PR file list
+        /// </summary>
+        /// <param name="repoId"></param>
+        /// <param name="prNumber"></param>
+        /// <returns></returns>
+        public IEnumerable<string> GetPullRequestFileList(long repoId, long prNumber)
+        {
+            IReadOnlyList<PullRequestFile> prFiles = OC.PullRequest.Files(repoId, (int)prNumber).GetAwaiter().GetResult();
             IEnumerable<string> filePathList = prFiles.Select<PullRequestFile, string>((item) => item.FileName);
             return filePathList;
         }

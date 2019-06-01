@@ -74,6 +74,11 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Tasks.PreBuild
         public string BuildScope { get; set; }
 
         /// <summary>
+        /// 
+        /// </summary>
+        public string[] MultipleScopes { get; set; }
+
+        /// <summary>
         /// Fully qualified Scope Path
         /// This is especially required for Swagger to SDK scenarios
         /// </summary>
@@ -148,7 +153,7 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Tasks.PreBuild
         #endregion
 
 
-        #region Task Props
+        #region internal task props
         public override string NetSdkTaskName => "CategorizeSDKProjectsTask";
 
         string RepositoryRootDirPath
@@ -190,8 +195,8 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Tasks.PreBuild
 
         public CategorizeSDKProjectsTask(string rootDirPath) : this(rootDirPath, string.Empty, string.Empty, string.Empty) { }
 
-        public CategorizeSDKProjectsTask(string rootDirPath, string buildScope, string PType, string PCategory): this()
-        {   
+        public CategorizeSDKProjectsTask(string rootDirPath, string buildScope, string PType, string PCategory) : this()
+        {
             RepositoryRootDirPath = rootDirPath;
             BuildScope = buildScope;
             ProjectType = PType;
@@ -249,22 +254,42 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Tasks.PreBuild
             List<SdkProjectMetadata> testToBeRunProjList = new List<SdkProjectMetadata>();
             List<SdkProjectMetadata> platformSpecificSkippedProjList = new List<SdkProjectMetadata>();
 
-            ProjectSearchUtility psu = null;
+            List<string> searchedProjects = new List<string>();
 
-            if(!string.IsNullOrWhiteSpace(FullyQualifiedBuildScopeDirPath))
+            ProjectSearchUtility psu = null;
+            Dictionary<string, SdkProjectMetadata> allProj = null;
+            if (!string.IsNullOrWhiteSpace(FullyQualifiedBuildScopeDirPath))
             {
                 psu = new ProjectSearchUtility(FullyQualifiedBuildScopeDirPath,
                                                     CmdLineExcludeScope, CmdLineIncludeScope, ProjType, ProjCat);
+                searchedProjects = psu.FindProjects();
             }            
             else
             {
                 //If BuildScope is empty, we will default to the root anyway, so regardless if we have a valid token or an invalid token or empty token
                 psu = new ProjectSearchUtility(RepositoryRootDirPath, BuildScope,
                                                     CmdLineExcludeScope, CmdLineIncludeScope, ProjType, ProjCat);
+                searchedProjects = psu.FindProjects();
             }
             
+            if(psu == null)
+            {
+                if(MultipleScopes != null)
+                {
+                    psu = new ProjectSearchUtility(RepositoryRootDirPath, string.Empty,
+                                                    CmdLineExcludeScope, CmdLineIncludeScope, ProjType, ProjCat);
+                    foreach (string scope in MultipleScopes)
+                    {
+                        searchedProjects.AddRange(psu.FindProjects(scope));
+                    }
 
-            var allProj = LoadProjectData(psu.FindProjects());
+                    allProj = LoadProjectData(searchedProjects);
+                }
+            }
+            else
+            {   
+                allProj = LoadProjectData(searchedProjects);
+            }
 
             foreach (KeyValuePair<string, SdkProjectMetadata> kv in allProj)
             {

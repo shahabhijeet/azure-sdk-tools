@@ -121,6 +121,52 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Common.Utilities
             return srcRootDir;
         }
 
+
+        public string TraverUptoRootWithFileExtension(string startingDir, string fileExtensionToFind = ".sln")
+        {
+            string srcRootDir = string.Empty;
+            string seedDirPath = string.Empty;
+            string extPattern = string.Format("*{0}", fileExtensionToFind);
+
+
+            if (!string.IsNullOrWhiteSpace(startingDir))
+            {
+                if (Directory.Exists(startingDir))
+                {
+                    seedDirPath = startingDir;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(seedDirPath))
+            {
+                seedDirPath = Directory.GetCurrentDirectory();
+            }
+
+            if (!Directory.Exists(seedDirPath))
+            {
+                seedDirPath = Path.GetDirectoryName(this.GetType().GetTypeInfo().Assembly.Location);
+            }
+
+            string dirRoot = Directory.GetDirectoryRoot(seedDirPath);
+
+            var filesWithExt = Directory.EnumerateFiles(seedDirPath, extPattern, SearchOption.TopDirectoryOnly);
+
+            while (seedDirPath != dirRoot)
+            {
+                if (filesWithExt.Any<string>())
+                {
+                    srcRootDir = Path.GetDirectoryName(filesWithExt.First<string>());
+                    break;
+                }
+
+                seedDirPath = Directory.GetParent(seedDirPath).FullName;
+                filesWithExt = Directory.EnumerateFiles(seedDirPath, extPattern, SearchOption.TopDirectoryOnly);
+            }
+
+            return srcRootDir;
+        }
+
+
         public void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
         {
             // Get the subdirectories for the specified directory.

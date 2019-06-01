@@ -234,6 +234,23 @@ namespace MS.Az.NetSdk.Build.Utilities
 
         #region public functions
 
+        public List<string> FindProjects(string scope)
+        {
+            Check.NotEmptyNotNull(scope, "Scope in multipleScope scenario");
+
+            if(Directory.Exists(scope))
+            {
+                FQScopeDirPath = scope;
+            }
+            else
+            {
+                ScopeToken = scope;
+            }
+
+            List<string> finalProjList = FindProjects();
+            return finalProjList;
+        }
+
         /// <summary>
         /// Find SDK as well as Test projects
         /// </summary>

@@ -14,6 +14,103 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Common.Utilities
     /// </summary>
     public static class Check
     {
+        #region Non-Negative Number
+
+        /// <summary>
+        /// Checks if provided string value is greater than 0
+        /// </summary>
+        /// <param name="number"></param>
+        /// <param name="argumentName"></param>
+        public static void NonNegativeNumber(string number, string argumentName = "argument")
+        {
+            string exceptionString = string.Format("Provided value '{0}' for argument '{1}' should be greater than zero", number, argumentName);
+
+            if (long.TryParse(number, out long num))
+            {
+                if(num <= 0)
+                {
+                    throw new ArgumentOutOfRangeException(exceptionString);
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Checks if the provided int and long values are non-negative
+        /// TODO:
+        /// There are other ways to implement this, but currently this is our top scenarios
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="number"></param>
+        /// <param name="argumentName"></param>
+        static void NonNegativeNumber<T>(T number, string argumentName = "argument") 
+        {
+            string typeName = typeof(T).Name;
+            bool throwException = false;
+
+            string exceptionString = string.Format("Only int32 and int64 is supported. Provided type '{0}' is not a valid applicable type for argument '{1}'", typeof(T).Name, argumentName);
+
+            if(!IsNumericType(number))
+            {
+                throw new ArgumentOutOfRangeException(exceptionString);
+            }
+
+            if (!(typeof(T).Equals(typeof(Int32))) || !(typeof(T).Equals(typeof(long))))
+            {
+                throwException = true;
+            }
+            else if ((typeof(T).Equals(typeof(Int32))) || (typeof(T).Equals(typeof(long))))
+            {
+                if(typeName.Equals(typeof(Int32).Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    int intNum = Convert.ToInt32(number);
+                    if(intNum < 0)
+                    {
+                        throwException = true;
+                    }
+                }
+                else if (typeName.Equals(typeof(Int64).Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    Int64 intNum = Convert.ToInt64(number);
+                    if (intNum < 0)
+                    {
+                        throwException = true;
+                    }
+                }
+            }
+
+            if(throwException == true)
+            {
+                throw new ArgumentOutOfRangeException(exceptionString);
+            }
+        }
+
+        static bool IsNumericType(object o)
+        {
+            switch (Type.GetTypeCode(o.GetType()))
+            {
+                case TypeCode.Byte:
+                case TypeCode.SByte:
+                case TypeCode.UInt16:
+                case TypeCode.UInt32:
+                case TypeCode.UInt64:
+                case TypeCode.Int16:
+                case TypeCode.Int32:
+                case TypeCode.Int64:
+                case TypeCode.Decimal:
+                case TypeCode.Double:
+                case TypeCode.Single:
+                    return true;
+                default:
+                    return false;
+            }
+
+            //return type.IsPrimitive && type!=typeof(char) && type!=typeof(bool); also ignore IntPtr and UIntPtr
+        }
+
+        #endregion
+
+
         /// <summary>
         /// Checks if the argument passed in is NotNull
         /// Throws NullReferenceException if the arugment is Null
