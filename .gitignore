@@ -452,3 +452,5 @@ MigrationBackup/
 # management build tools related
 tools/LocalNugetFeed/Microsoft.Internal.NetSdkBuild.Mgmt.Tools.*.nupkg
 restoredPackages/
+src/dotnet/Mgmt.CI.BuildTools/NugetToolsPackage/CI.Tools.Package/build/tasks/net461/
+src/dotnet/Mgmt.CI.BuildTools/NugetToolsPackage/CI.Tools.Package/build/tasks/netstandard2.0
