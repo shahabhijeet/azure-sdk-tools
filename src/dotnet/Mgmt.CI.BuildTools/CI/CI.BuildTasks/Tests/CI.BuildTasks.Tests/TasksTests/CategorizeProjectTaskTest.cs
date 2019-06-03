@@ -133,8 +133,8 @@ namespace BuildTasks.Tests
 
             if (cproj.Execute())
             {   
-                Assert.Equal(1, cproj.SDK_Projects.Count<ITaskItem>());
-                Assert.Equal(1, cproj.Test_Projects.Count<ITaskItem>());
+                Assert.Single(cproj.SDK_Projects);
+                Assert.Single(cproj.Test_Projects);
                 Assert.True(cproj.SdkPkgReferenceList.Count<string>() >= 1);
             }
         }

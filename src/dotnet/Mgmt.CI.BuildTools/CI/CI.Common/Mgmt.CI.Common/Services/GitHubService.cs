@@ -29,14 +29,14 @@ namespace MS.Az.Mgmt.CI.Common.Services
 
         #region fields
         GitHubClient _octokitClient;
-        InMemoryCredentialStore _octokitCredential;
+        //InMemoryCredentialStore _octokitCredential;
         Credentials _githubCredentials;
         InMemoryCredentialStore _credentialStore;
         ProductHeaderValue _myProductInfo;
-        RepositoriesClient _repoClient;
+        //RepositoriesClient _repoClient;
         PrSvc _pr;
 
-        IReadOnlyList<Repository> _repoList;
+        //IReadOnlyList<Repository> _repoList;
 
         #endregion
 

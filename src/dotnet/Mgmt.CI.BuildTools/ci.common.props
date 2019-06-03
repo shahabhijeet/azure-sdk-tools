@@ -9,9 +9,9 @@
 		<CurrentTargetFxVersion>net461;netstandard2.0</CurrentTargetFxVersion>
 		<TargetFrameworks>$(CurrentTargetFxVersion)</TargetFrameworks>
 		<OutputPath>$(CIBuildOutputDir)</OutputPath>
-		<SignAssembly>true</SignAssembly>
+		<SignAssembly>false</SignAssembly>
 		<DelaySign>false</DelaySign>
-		<AssemblyOriginatorKeyFile>$(RepoToolsDir)\MgmtNetSdkToolsKey.snk</AssemblyOriginatorKeyFile>
+		<!-- <AssemblyOriginatorKeyFile>$(RepoToolsDir)\MgmtNetSdkToolsKey.snk</AssemblyOriginatorKeyFile> -->
 	</PropertyGroup>
 
   <!--TestLoaded property is being set in test project file-->

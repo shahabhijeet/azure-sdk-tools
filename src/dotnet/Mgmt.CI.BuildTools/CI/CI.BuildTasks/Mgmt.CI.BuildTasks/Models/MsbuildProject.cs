@@ -23,7 +23,7 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Models
         #endregion
 
         #region fields
-        bool _hasXunitPackageReference;
+        //bool _hasXunitPackageReference;
         List<string> _packageReferenceList;
         string _targetFxMoniker;
         SdkProjectType _sdkProjType;
@@ -168,13 +168,13 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Models
             _sdkProjType = SdkProjectType.UnDetermined;
             _sdkProjCategory = SdkProjectCategory.UnDetermined;
         }
-        public MsbuildProject(string projectFullPath)
+        public MsbuildProject(string projectFullPath) : this()
         {
             Check.FileExists(projectFullPath);
             ProjectFilePath = projectFullPath;
             ProjectFileName = Path.GetFileName(ProjectFilePath);
             Object lockObj = new object();
-            lock(lockObj)
+            lock (lockObj)
             {
                 if (ProjectCollection.GlobalProjectCollection.GetLoadedProjects(projectFullPath).Count != 0)
                 {

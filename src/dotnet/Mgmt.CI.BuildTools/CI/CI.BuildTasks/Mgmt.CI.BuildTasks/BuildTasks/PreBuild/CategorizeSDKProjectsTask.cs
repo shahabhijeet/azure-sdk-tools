@@ -53,14 +53,14 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Tasks.PreBuild
         #endregion
 
         #region fields
-        string _scope;
+        //string _scope;
         string _repositoryRootDirPath;
         string _cmdLineExcludeScope;
 
-        string _projType;
-        string _projCat;
+        //string _projType;
+        //string _projCat;
         //SdkProjectType _projectType;
-        SdkProjectCategory _projectCategory;
+        //SdkProjectCategory _projectCategory;
         #endregion
 
         #region Properties
@@ -258,7 +258,18 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Tasks.PreBuild
 
             ProjectSearchUtility psu = null;
             Dictionary<string, SdkProjectMetadata> allProj = null;
-            if (!string.IsNullOrWhiteSpace(FullyQualifiedBuildScopeDirPath))
+
+            if (MultipleScopes.NotNullOrAny<string>())
+            {
+                psu = new ProjectSearchUtility(RepositoryRootDirPath, string.Empty,
+                                                CmdLineExcludeScope, CmdLineIncludeScope, ProjType, ProjCat);
+
+                foreach (string scope in MultipleScopes)
+                {
+                    searchedProjects.AddRange(psu.FindProjects(scope));
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(FullyQualifiedBuildScopeDirPath))
             {
                 psu = new ProjectSearchUtility(FullyQualifiedBuildScopeDirPath,
                                                     CmdLineExcludeScope, CmdLineIncludeScope, ProjType, ProjCat);
@@ -272,24 +283,26 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Tasks.PreBuild
                 searchedProjects = psu.FindProjects();
             }
             
-            if(psu == null)
-            {
-                if(MultipleScopes != null)
-                {
-                    psu = new ProjectSearchUtility(RepositoryRootDirPath, string.Empty,
-                                                    CmdLineExcludeScope, CmdLineIncludeScope, ProjType, ProjCat);
-                    foreach (string scope in MultipleScopes)
-                    {
-                        searchedProjects.AddRange(psu.FindProjects(scope));
-                    }
+            //if(psu == null)
+            //{
+            //    if(MultipleScopes != null)
+            //    {
+            //        psu = new ProjectSearchUtility(RepositoryRootDirPath, string.Empty,
+            //                                        CmdLineExcludeScope, CmdLineIncludeScope, ProjType, ProjCat);
+            //        foreach (string scope in MultipleScopes)
+            //        {
+            //            searchedProjects.AddRange(psu.FindProjects(scope));
+            //        }
 
-                    allProj = LoadProjectData(searchedProjects);
-                }
-            }
-            else
-            {   
-                allProj = LoadProjectData(searchedProjects);
-            }
+            //        allProj = LoadProjectData(searchedProjects);
+            //    }
+            //}
+            //else
+            //{   
+            //    allProj = LoadProjectData(searchedProjects);
+            //}
+
+            allProj = LoadProjectData(searchedProjects);
 
             foreach (KeyValuePair<string, SdkProjectMetadata> kv in allProj)
             {
@@ -380,17 +393,20 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Tasks.PreBuild
             TaskLogger.LogInfo("Test Project(s) found:'{0}'", Test_Projects.Count().ToString());
             TaskLogger.LogInfo(MessageImportance.Low, Test_Projects, "File Paths for Test Projects");
 
-            if(UnSupportedProjects.NotNullOrAny<SDKMSBTaskItem>())
+            TaskLogger.LogInfo("Test Project(s) whose tests will be executed are:'{0}'", Test_ToBe_Run.Count().ToString());
+            TaskLogger.LogInfo(MessageImportance.Low, Test_ToBe_Run, "File Paths for Test Projects whose tests will be executed");
+
+            if (UnSupportedProjects.NotNullOrAny<SDKMSBTaskItem>())
             {
                 TaskLogger.LogInfo("Project(s) whose target framework is not currently supported:'{0}'", UnSupportedProjects.Count().ToString());
                 TaskLogger.LogInfo(MessageImportance.Low, UnSupportedProjects, "File Paths for Unsupported Projects");
             }
 
-            if (Test_ToBe_Run.NotNullOrAny<SDKMSBTaskItem>())
-            {
-                TaskLogger.LogInfo("Test Project(s) whose tests will be executed are:'{0}'", Test_ToBe_Run.Count().ToString());
-                TaskLogger.LogInfo(MessageImportance.Low, Test_ToBe_Run, "File Paths for Test Projects whose tests will be executed");
-            }
+            //if (Test_ToBe_Run.NotNullOrAny<SDKMSBTaskItem>())
+            //{
+            //    TaskLogger.LogInfo("Test Project(s) whose tests will be executed are:'{0}'", Test_ToBe_Run.Count().ToString());
+            //    TaskLogger.LogInfo(MessageImportance.Low, Test_ToBe_Run, "File Paths for Test Projects whose tests will be executed");
+            //}
 
             if (PlatformSpecificSkippedProjects.NotNullOrAny<SDKMSBTaskItem>())
             {

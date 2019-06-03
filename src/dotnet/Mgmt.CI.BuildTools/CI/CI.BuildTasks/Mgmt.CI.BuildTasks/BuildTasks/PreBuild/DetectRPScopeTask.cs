@@ -4,6 +4,7 @@
 
 namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
 {
+    using Microsoft.Build.Framework;
     using MS.Az.Mgmt.CI.BuildTasks.Common;
     using MS.Az.Mgmt.CI.BuildTasks.Common.Base;
     using MS.Az.Mgmt.CI.BuildTasks.Common.ExtensionMethods;
@@ -17,6 +18,26 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+
+    /// <summary>
+    /// Based on the values passed during PR validation
+    /// 
+    /// Repo Id: Azure/azure-sdk-for-net
+    /// Commit Id: cbb60cf07c655e38ffa3ffa66cf7779b8e5d08c5
+    /// Pull Request No: 6453
+    /// Pull Request Id: 284151530
+    /// Head Branch: envs
+    /// Base fork: Azure/azure-sdk-for-net
+    /// Base Branch: master
+    /// 
+    /// echo Repo Id: $(Build.Repository.ID)
+    /// echo Commit Id: $(Build.SourceVersion)
+    /// echo Pull Request No: $(System.PullRequest.PullRequestNumber)
+    /// echo Pull Request Id: $(System.PullRequest.PullRequestId)
+    /// echo Head Branch: $(System.PullRequest.SourceBranch)
+    /// echo Base fork: $(Build.Repository.Name)
+    /// echo Base Branch: $(System.PullRequest.TargetBranch)
+    /// </summary>
     public class DetectRPScopeTask : NetSdkBuildTask
     {
         #region const
@@ -38,15 +59,14 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
         /// Not the SSH uri, neither clone uri
         /// This can also contain relative Url
         /// </summary>
-        public string GH_RepoHtmlUrl { get; set; }
+        public string GH_RepositoryHtmlUrl { get; set; }
 
         #endregion
 
         #region task output properties
-
-        public string[] MultipleScopes { get; set; }
+        [Output]
+        public string[] ScopesFromPR { get; set; }
         #endregion
-
 
         public override string NetSdkTaskName => "DetectRPScopeTask";
 
@@ -64,22 +84,22 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
             }
         }
 
-        long RepoId { get; set; }
+        //long RepoId { get; set; }
 
-        long PrNumber { get; set; }
+        //long PrNumber { get; set; }
         #endregion
 
         #region Constructor
         public DetectRPScopeTask()
         {
             GH_PRNumber = 0;
-            GH_RepoHtmlUrl = string.Empty;
+            GH_RepositoryHtmlUrl = string.Empty;
             GH_RepositoryId = 0;
         }
 
         public DetectRPScopeTask(string repoHtmlUrl, Int64 prNumber) : this()
         {
-            GH_RepoHtmlUrl = repoHtmlUrl.Trim();
+            GH_RepositoryHtmlUrl = repoHtmlUrl.Trim();
             GH_PRNumber = prNumber;
         }
         public DetectRPScopeTask(Int64 repoId, Int64 prNumber) : this()
@@ -92,24 +112,20 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
         {
             //string exceptionStringFormat = "Only numeric datatype is supported. Provided value has to be non-negative and non-zero '{0}'";
 
+
             if(GH_RepositoryId <= 0)
             {
-                if (string.IsNullOrWhiteSpace(GH_RepoHtmlUrl))
+                if (string.IsNullOrWhiteSpace(GH_RepositoryHtmlUrl))
                 {
-                    throw new ArgumentException("Provide either Repository Id or Repositry Url");
+                    //throw new ArgumentException("Provide either Repository Id or Repositry Url");
+                    TaskLogger.LogWarning("Repository Html Url not provided");
                 }
             }
 
-            if(GH_PRNumber <= 0)
+            if(GH_PRNumber < 0)
             {
                 throw new ArgumentException("Provide non-zero, non-negative PR Number");
             }
-
-            //Check.NonNegativeNumber(GH_PRNumber, "GH_PRNumber");
-            //Check.NonNegativeNumber(GH_RepositoryId, "GH_RepositoryId");
-
-            //RepoId = Convert.ToInt64(GH_RepositoryId);
-            //PrNumber = Convert.ToInt64(GH_PRNumber);
         }
         #endregion
 
@@ -119,11 +135,21 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
             base.Execute();
             Init();
 
-            List<string> validScopes = GetRPScopes();
+            List<string> validScopes = new List<string>();
 
-            if (validScopes.NotNullOrAny<string>())
+            if (GH_PRNumber > 0)
             {
-                MultipleScopes = validScopes.ToArray<string>();
+                validScopes = GetRPScopes();
+                if (validScopes.NotNullOrAny<string>())
+                {
+                    ScopesFromPR = validScopes.ToArray<string>();
+                }
+            }
+            else
+            {
+                // This helps in pass thru for scenarios where this task is being invoked without
+                // any valid PR info
+                ScopesFromPR = validScopes.ToArray<string>();
             }
 
             return TaskLogger.TaskSucceededWithNoErrorsLogged;
@@ -141,18 +167,18 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
         /// <returns></returns>
         List<string> GetRPScopes()
         {
-            TaskLogger.LogInfo("Trying to get Pr info for PrNumber:'{0}'", PrNumber.ToString());
+            TaskLogger.LogInfo("Trying to get Pr info for PrNumber:'{0}'", GH_PRNumber.ToString());
             FileSystemUtility fileSysUtil = new FileSystemUtility();
             IEnumerable<string> prFileList = null;
             List<string> finalScopePathList = new List<string>();
 
-            if (!string.IsNullOrWhiteSpace(GH_RepoHtmlUrl))
+            if (!string.IsNullOrWhiteSpace(GH_RepositoryHtmlUrl))
             {
-                TaskLogger.LogInfo("Trying to get Pr info using PrNumber:'{0}', GitHubUrl:'{1}'", GH_PRNumber.ToString(), GH_RepoHtmlUrl);
+                TaskLogger.LogInfo("Trying to get Pr info using PrNumber:'{0}', GitHubUrl:'{1}'", GH_PRNumber.ToString(), GH_RepositoryHtmlUrl);
 
                 string repoName = string.Empty;
                 //Split the url
-                string[] tokens = GH_RepoHtmlUrl.Split(new char[] { Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+                string[] tokens = GH_RepositoryHtmlUrl.Split(new char[] { Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
 
                 //Get the last token which represents the repository name
                 if (tokens != null)
@@ -168,7 +194,7 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
                 prFileList = GHSvc.PR.GetPullRequestFileList(GH_RepositoryId, GH_PRNumber);
             }
 
-            TaskLogger.LogInfo("List of files from PR", prFileList);
+            TaskLogger.LogInfo(MessageImportance.Low, prFileList, "List of files from PR");
             Dictionary<string, string> RPDirs = FindScopeFromPullRequestFileList(prFileList);
 
             //Dictionary<string, string> RPDirs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -234,7 +260,16 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
                     {
                         if (tokens.Length >= 3)
                         {
-                            string relScopePath = Path.Combine(tokens[0], tokens[1], tokens[2]);
+                            string relScopePath = string.Empty;
+                            if (tokens[0].Equals("src", StringComparison.OrdinalIgnoreCase))
+                            {
+                                relScopePath = Path.Combine(tokens[1], tokens[2]);
+                            }
+                            else
+                            {
+                                relScopePath = Path.Combine(tokens[0], tokens[1], tokens[2]);
+                            }
+
                             relScopePath = AdjustPlatformPaths(relScopePath);
 
                             if (!relScopePath.EndsWith("_metadata", StringComparison.OrdinalIgnoreCase))

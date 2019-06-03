@@ -1,6 +1,7 @@
 ﻿<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <PreBuildTargets>
+      FindRPScopeFromPR;
       CategorizeProjects;
     </PreBuildTargets>
     <CleanTargetsDependsOn>
@@ -35,7 +36,6 @@
   </PropertyGroup>
 
   <Target Name="GetBuildEnv">
-    
     <Message Text="CISignRepo......$(CISignRepo)" Importance="Low" />
     <Message Text="OnPremiseBuild .... $(OnPremiseBuild)" Importance="Low" />
     <!--<Message Text="OnPremiseBuildTasks .... $(OnPremiseBuildTasks)"/>-->
@@ -119,11 +119,24 @@
              ContinueOnError="ErrorAndStop"
              Condition=" '$(WhatIf)' != 'true' ">
       <Output TaskParameter="TargetOutputs" ItemName="builtAssemblies" />
-
-
     </MSBuild>
   </Target>
 
+  <Target Name="FindRPScopeFromPR" Condition=" '$(PullRequestNumber)' != '' AND '$(RepoHtmlUrl)' != '' ">
+    <Message Text="Finding Scope..." />
+
+    <DetectRPScopeTask
+      GH_PRNumber="$(PullRequestNumber)"
+      GH_RepositoryHtmlUrl="$(RepoHtmlUrl)"
+      GH_RepositoryId="$(RepoId)"
+      DebugMode="$(DebugMode)"
+      WhatIf="$(WhatIf)"
+      >
+      <Output TaskParameter="ScopesFromPR" ItemName="ScopesFromPullRequest" />
+    </DetectRPScopeTask>
+
+    <Message Text="Scopes retrieved from PR......@(ScopesFromPullRequest)" Importance="High" />
+  </Target>
   <Target Name="CategorizeProjects">
     <Message Text="Target ==> CategorizeProjects Initiated....." Importance="Low" />
     <Message Text="Categorizing Target....." Condition=" '$(DebugTrace)' == 'true' " />
@@ -132,10 +145,11 @@
     <Message Text="RootDirNoTrailSepp..............$(RootDirNoTrailSepp)" Condition=" '$(DebugTrace)' == 'true' " />
     <Message Text="pkg_root_RepoRoot..............$(pkg_root_RepoRoot)" Condition=" '$(DebugTrace)' == 'true' " />
     <Message Text="pkg_root_RepoSrcDir..............$(pkg_root_RepoSrcDir)" Condition=" '$(DebugTrace)' == 'true' " />
-    <DebugTask Condition=" '$(DebugMode)' == 'true' " />
+
     <CategorizeSDKProjectsTask
       BuildScope="$(Scope)"
       FullyQualifiedBuildScopeDirPath="$(FQBuildScopeDirPath)"
+      MultipleScopes="@(ScopesFromPullRequest)"
       CmdLineIncludeScope="$(IncludeRPs)"
       CmdLineExcludeScope="$(ExcludeRPs)"
       DebugMode="$(DebugMode)"
@@ -190,14 +204,11 @@
       <ExecuteTestSuite Include="@(TestToBeRun)" />
     </ItemGroup>
 
-    <Message Text="Running .NET Core Tests .... @(ExecuteTestSuite)" Condition=" '@(ExecuteTestSuite)' != '' " />
+    <Message Text="Running .NET Core Tests .... %(ExecuteTestSuite.Identity)" Condition=" '@(ExecuteTestSuite)' != '' " />
+    <Message Text="Running .NET Core Tests .... %(ExecuteTestSuite.PlatformSpecificFx)" Condition=" '@(ExecuteTestSuite)' != '' " />
     
     <Exec Command="dotnet test %(ExecuteTestSuite.Identity) -f %(ExecuteTestSuite.PlatformSpecificFx) -l trx;LogFileName=$(pkg_root_RepoTestResultsDir)\%(ExecuteTestSuite.PlatformSpecificFx)\%(ExecuteTestSuite.Filename).trx" 
-          Condition=" ('@(ExecuteTestSuite)' != '') OR ( '$(WhatIf)' != 'true' ) " ContinueOnError="false" WorkingDirectory="%(ExecuteTestSuite.RootDir)%(ExecuteTestSuite.Directory)" />
-    <!--    
-    <Message Text="Running .NET Core 2.0 Tests .... @(netCore20TestProj)" Condition=" '@(netCore20TestProj)' != '' " />
-    <Exec Command="dotnet test -f $(NetCore20) %(netCore20TestProj.Identity) -l trx;LogFileName=$(LibraryRoot)TestResults\$(NetCore20)\%(netCore20TestProj.Filename).trx /nodeReuse:false" Condition="@(netCore20TestProj) != ''" ContinueOnError="false" WorkingDirectory="%(netCore20TestProj.RootDir)%(netCore20TestProj.Directory)" />
-    -->
+          Condition="( ('@(ExecuteTestSuite)' != '') AND ('$(WhatIf)' != 'true') )" ContinueOnError="false" WorkingDirectory="%(ExecuteTestSuite.RootDir)%(ExecuteTestSuite.Directory)" />
   </Target>
 
   <!--
@@ -236,11 +247,38 @@
     </MSBuild>
   </Target>
   
-  <Target Name="PublishingNuget">
+ 
+
+  <Target Name="DisplayHelp">
+    <Message Text="msbuild build.proj /t:Build"/>
+    <Message Text="---- will build and create nuget pacakge for the entire repo"/>
+    <Message Text=" " />
+
+    <Message Text="msbuild build.proj /t:Build /p:Scope=SDKs\Compute" />
+    <Message Text="---- will build Microsoft.Azure.Management.Compute and Compute.Tests project and create nuget pacakge for Compute"/>
+    <Message Text=" " />
+
+    <Message Text="msbuild build.proj /t:RunTests /p:Scope=SDKs\Compute" />
+    <Message Text="----- will Build Compute nuget package and run compute test" />
+    <Message Text=" " />
+    
+    <Message Text="msbuild build.proj /t:CreateNugetPackage /p:Scope=SDKs\Compute" />
+    <Message Text="----- will Build, RunTests and create nuget package for Compute" />
+    <Message Text=" " />
+  </Target>
+  
+  <!--Do not delete-->
+  <Target Name="PreBuildStaticAnalysis" DependsOnTargets="$(PreBuildStaticAnalysisTargets)"/>
+  <Import Project="..\tasks\common.tasks"/>  
+</Project>
+
+<!--
+
+ <Target Name="PublishingNuget">
     <Error Condition=" ('$(NugetPackageName)' == '') AND '$(MultiPackagePublish)' != 'true' " Text="Please Provide Package Name that has to be published /p:NugetPackageName=[packagename]" />
     <Error Condition="( ('$(Scope)' == '' OR '$(Scope)' == 'all' OR '$(Scope)' == 'All') AND '$(MultiPackagePublish)' != 'true' )" 
                         Text="Publishing nuget package without specifying scope and packageName has now been disabled (e.g /p:NugetPackageName=Microsoft.Azure.Management.Compute /p:Scope=SDKs\Compute )" />
-                    <!-- Condition=" ('$(NugetPackageName)' == '') OR ('$(Scope)' == '' OR '$(Scope)' == 'all' OR '$(Scope)' == 'All') AND '$(PublishMultiPackage)' != 'true' "  -->
+                    Condition=" ('$(NugetPackageName)' == '') OR ('$(Scope)' == '' OR '$(Scope)' == 'all' OR '$(Scope)' == 'All') AND '$(PublishMultiPackage)' != 'true' "  
     <PropertyGroup>
       <PublishNugetToDir Condition=" '$(PublishNugetToDir)' == '' ">$(LibraryRoot)PublishedNugets</PublishNugetToDir>
       <TaskDebugOutput Condition=" '$(TaskDebugOutput)' == '' ">false</TaskDebugOutput>
@@ -276,7 +314,7 @@
     <Message Text="Archiving Symbols......." />
     <Message Text="AssemblyFileList ==== @(FilesToSign)" Importance="Normal" />
     <Message Text="ArchiveSymbolsRootDir ==== $(ArchiveSymbolsRootDir)" Importance="Normal" />
-    <!--  -->
+    
     <ArchiveSymbolsTask
       BuiltAssemblyFileCollection="@(FilesToSign)"
       ArchiveSymbolsRootDir="$(ArchiveSymbolsRootDir)"
@@ -288,28 +326,4 @@
     </ArchiveSymbolsTask>
   </Target>
 
-  <Target Name="DisplayHelp">
-    <Message Text="msbuild build.proj /t:Build"/>
-    <Message Text="---- will build and create nuget pacakge for the entire repo"/>
-    <Message Text=" " />
-
-    <Message Text="msbuild build.proj /t:Build /p:Scope=SDKs\Compute" />
-    <Message Text="---- will build Microsoft.Azure.Management.Compute and Compute.Tests project and create nuget pacakge for Compute"/>
-    <Message Text=" " />
-
-    <Message Text="msbuild build.proj /t:RunTests /p:Scope=SDKs\Compute" />
-    <Message Text="----- will Build Compute nuget package and run compute test" />
-    <Message Text=" " />
-    
-    <Message Text="msbuild build.proj /t:CreateNugetPackage /p:Scope=SDKs\Compute" />
-    <Message Text="----- will Build, RunTests and create nuget package for Compute" />
-    <Message Text=" " />
-  </Target>
-  
-  <!--Do not delete-->
-  <Target Name="PreBuildStaticAnalysis" DependsOnTargets="$(PreBuildStaticAnalysisTargets)"/>
-  <Import Project="signing.targets"/>  
-  <Import Project="additional.targets"/>
-  <Import Project="utility.targets"/>
-  <Import Project="..\tasks\common.tasks"/>  
-</Project>
+-->

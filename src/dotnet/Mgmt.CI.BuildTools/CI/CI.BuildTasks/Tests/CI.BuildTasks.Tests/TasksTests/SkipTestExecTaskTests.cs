@@ -47,6 +47,7 @@ namespace Tests.CI.BuildTasks.TasksTests
             Assert.True(ste.Execute());
         }
 
+        [Fact(Skip = "Skip this test")]
         public void SkipTestExecutionForAllProjects()
         {
             ProjectSearchUtility psu = new ProjectSearchUtility(rootDir);

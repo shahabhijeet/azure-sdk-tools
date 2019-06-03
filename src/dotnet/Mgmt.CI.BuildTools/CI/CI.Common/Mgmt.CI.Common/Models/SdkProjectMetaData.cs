@@ -93,10 +93,7 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Common.Tasks.Models
                         MsBuildProject = new Project(fullProjectPath);
                     }
                 }
-                catch(Exception ex)
-                {
-
-                }
+                catch (Exception) { }
 
                 if(MsBuildProject != null)
                 {

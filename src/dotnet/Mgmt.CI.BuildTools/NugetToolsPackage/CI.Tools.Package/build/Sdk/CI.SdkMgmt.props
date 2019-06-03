@@ -55,6 +55,6 @@
   </PropertyGroup>
 
   <Import Project="..\targets\core\_Directory.Build.props" />
-  <Import Condition=" '$(IsTestProject)' == 'true' " Project="..\targets\core\_test.props" />
-  <Import Condition=" '$(IsSdkProject)' == 'true' " Project="..\targets\core\_AzSdk.props" />
+  <!-- <Import Condition=" '$(IsTestProject)' == 'true' " Project="..\targets\core\_test.props" />
+  <Import Condition=" '$(IsSdkProject)' == 'true' " Project="..\targets\core\_AzSdk.props" /> -->
 </Project>

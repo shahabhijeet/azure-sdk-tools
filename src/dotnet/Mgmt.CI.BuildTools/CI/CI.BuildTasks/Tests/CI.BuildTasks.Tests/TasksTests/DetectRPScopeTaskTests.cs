@@ -48,6 +48,7 @@ namespace Tests.CI.BuildTasks.TasksTests
         [InlineData(NET_SDK_PUB_URL, 6419)]
         [InlineData(NET_SDK_PUB_URL, 6304)]
         [InlineData(NET_SDK_PUB_URL, 6453)]
+        [InlineData(@"azure/azure-sdk-for-net", 6304)]
         public void SingleScope(string ghUrl, long ghPrNumber)
         {
             DetectRPScopeTask rpScope = new DetectRPScopeTask(ghUrl, ghPrNumber);
@@ -58,34 +59,34 @@ namespace Tests.CI.BuildTasks.TasksTests
                 {
                     case 6396:
                         {
-                            Assert.NotNull(rpScope.MultipleScopes);
-                            Assert.True(rpScope.MultipleScopes.Length == 1);
+                            Assert.NotNull(rpScope.ScopesFromPR);
+                            Assert.True(rpScope.ScopesFromPR.Length == 1);
                             break;
                         }
 
                     case 6418:
                         {
-                            Assert.NotNull(rpScope.MultipleScopes);
-                            Assert.True(rpScope.MultipleScopes.Length == 1);
+                            Assert.NotNull(rpScope.ScopesFromPR);
+                            Assert.True(rpScope.ScopesFromPR.Length == 1);
                             break;
                         }
 
                     case 6419:
                         {
-                            Assert.NotNull(rpScope.MultipleScopes);
-                            Assert.True(rpScope.MultipleScopes.Length == 1);
+                            Assert.NotNull(rpScope.ScopesFromPR);
+                            Assert.True(rpScope.ScopesFromPR.Length == 1);
                             break;
                         }
 
                     case 6304:
                         {
-                            Assert.NotNull(rpScope.MultipleScopes);
-                            Assert.True(rpScope.MultipleScopes.Length == 1);
+                            Assert.NotNull(rpScope.ScopesFromPR);
+                            Assert.True(rpScope.ScopesFromPR.Length == 1);
                             break;
                         }
                     case 6453:
                         {
-                            Assert.Null(rpScope.MultipleScopes);
+                            Assert.Null(rpScope.ScopesFromPR);
                             break;
                         }
                     default:

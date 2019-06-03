@@ -11,7 +11,7 @@ namespace Tests.CI.Common
     static public class GlobalTestInfo
     {
         #region Fields
-        static ITestOutputHelper _globalTestoutput;
+        //static ITestOutputHelper _globalTestoutput;
         #endregion
         static public ITestOutputHelper GlobalTestOutput { get; set; }
     }

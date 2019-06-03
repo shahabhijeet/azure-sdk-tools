@@ -16,7 +16,7 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Common.Base
         #region Fields
         NetSdkBuildTaskLogger _taskLogger;
         DebugTask _debugTask;
-        bool _isRunningUnderTest;
+        //bool _isRunningUnderTest;
         bool _isBuildEngineInitialized;
         KeyVaultService _kvSvc;
         #endregion
@@ -31,7 +31,7 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Common.Base
         {
             get
             {
-                if(_kvSvc == null)
+                if (_kvSvc == null)
                 {
                     _kvSvc = new KeyVaultService(TaskLogger);
                 }
@@ -77,7 +77,7 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Common.Base
                 {
                     _taskLogger = GetLogger();
 
-                    if(_taskLogger == null)
+                    if (_taskLogger == null)
                     {
                         if (IsBuildEngineInitialized)
                         {
@@ -146,7 +146,7 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Common.Base
         NetSdkBuildTaskLogger GetLogger()
         {
             NetSdkBuildTaskLogger logger = GlobalStateInfo.GetGlobalObject<NetSdkBuildTaskLogger>();
-            if(logger == null)
+            if (logger == null)
             {
                 BuildConsoleLogger consoleLogger = GlobalStateInfo.GetGlobalObject<BuildConsoleLogger>();
                 if (consoleLogger != null)

@@ -16,7 +16,7 @@ namespace Tests.CI.BuildTasks.UtilityTests
 
     public class ProjectSearchTests: BuildTasksTestBase
     {
-        public string RepoRootDirPath { get; set; }
+        //public string RepoRootDirPath { get; set; }
 
         ProjectSearchUtility ProjSearch;
 
