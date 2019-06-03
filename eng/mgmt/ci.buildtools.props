@@ -3,21 +3,23 @@
 	<PropertyGroup>
 		<CurrentDir>$(MSBuildThisFileDirectory)</CurrentDir>
 		<RootDir>$(MSBuildProjectDirectory)</RootDir>
-		<RepoRootRelPath>.\..\</RepoRootRelPath>		
+		<RepoRootRelPath>.\..\</RepoRootRelPath>
+		<RepoRelAbsPath>$([System.IO.Path]::GetFullPath($(RootDir)))</RepoRelAbsPath>
 		<RepoRootAbspath>$([System.IO.Path]::GetFullPath($(RootDir)).Trim('\'))</RepoRootAbspath>
 	</PropertyGroup>
 	<PropertyGroup>
-		<RepoRoot>$(RepoRootAbspath)</RepoRoot>
-		<RepoSrcDir>$(RepoRoot)\src</RepoSrcDir>
+		<RepoRoot>$(RepoRelAbsPath)</RepoRoot>
+		<RepositoryRoot>$(RepoRootAbspath)</RepositoryRoot>
+		<RepoSrcDir>$(RepositoryRoot)\src</RepoSrcDir>
 		<RepoMgmtCIToolsSrcDir>$(RepoSrcDir)\dotnet\Mgmt.CI.BuildTools</RepoMgmtCIToolsSrcDir>
-		<RepoToolsDir>$(RepoRoot)\tools</RepoToolsDir>
-		<RepoEngDir>$(RepoRoot)\eng</RepoEngDir>
-		<SubModuleRootDir>$(RepoRoot)\repos</SubModuleRootDir>
+		<RepoToolsDir>$(RepositoryRoot)\tools</RepoToolsDir>
+		<RepoEngDir>$(RepositoryRoot)\eng</RepoEngDir>
+		<SubModuleRootDir>$(RepositoryRoot)\repos</SubModuleRootDir>
 		<RepoNugetFeedDir>$(RepoToolsDir)\LocalNugetFeed</RepoNugetFeedDir>
 		<RepoDeveloperDir>$(RepoEngDir)\alias</RepoDeveloperDir>
 		<RepoNugetDir>$(RepoToolsDir)\NugetExe</RepoNugetDir>
     <NugPkgSrcDir>$(RepoMgmtCIToolsSrcDir)\NugetToolsPackage</NugPkgSrcDir>
-		<RepoNugetRestoreDir>$(RepoRoot)\restoredPackages</RepoNugetRestoreDir>
+		<RepoNugetRestoreDir>$(RepositoryRoot)\restoredPackages</RepoNugetRestoreDir>
 	</PropertyGroup>
 
 	<PropertyGroup Label="CI paths">
@@ -43,7 +45,7 @@
   -->
 	<PropertyGroup>
 		<DotNetRuntimeContext>$(MSBuildRuntimeType)</DotNetRuntimeContext>
-		<FxVersionTasksToUse Condition=" '$(DotNetRuntimeContext)' == 'Core' ">netstandard2.0</FxVersionTasksToUse>    
+		<FxVersionTasksToUse Condition=" '$(DotNetRuntimeContext)' == 'Core' ">netstandard2.0</FxVersionTasksToUse>
 		<FxVersionTasksToUse Condition=" '$(FxVersionTasksToUse)' == '' AND '$(DotNetRuntimeContext)' != 'Core' ">net461</FxVersionTasksToUse>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(MSBuildRuntimeType)' == 'Core'">
