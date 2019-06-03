@@ -9,6 +9,7 @@ namespace MS.Az.Mgmt.CI.Common.Services
     using MS.Az.Mgmt.CI.BuildTasks.Common.Logger;
     using MS.Az.Mgmt.CI.BuildTasks.Common.Services;
     using MS.Az.Mgmt.CI.Common.ExtensionMethods;
+    using MS.Az.Mgmt.CI.Common.Models;
     using Octokit;
     using Octokit.Internal;
     using System;
@@ -40,7 +41,7 @@ namespace MS.Az.Mgmt.CI.Common.Services
         #endregion
 
         #region Properties
-        KeyVaultService KVSvc { get; set; }
+        //KeyVaultService KVSvc { get; set; }
 
         public PrSvc PR
         {
@@ -48,7 +49,7 @@ namespace MS.Az.Mgmt.CI.Common.Services
             {
                 if (_pr == null)
                 {
-                    _pr = new PrSvc(OctoClient, UtilLogger, KVSvc);
+                    _pr = new PrSvc(OctoClient, UtilLogger);
                 }
 
                 return _pr;
@@ -75,7 +76,8 @@ namespace MS.Az.Mgmt.CI.Common.Services
                 if (_githubCredentials == null)
                 {
                     //TODO: Find the apiKey For the user that has access to both repo (public/private) in the new flow
-                    _githubCredentials = new Credentials(KVSvc.GetSecret(CommonConstants.AzureAuth.SToS_ClientSecret));
+                    //_githubCredentials = new Credentials(KVSvc.GetSecret(CommonConstants.AzureAuth.KVInfo.Secrets.GH_AdxSdkNetAcccesToken));
+                    _githubCredentials = new Credentials(GHAccessToken);
                 }
 
                 return _githubCredentials;
@@ -109,12 +111,18 @@ namespace MS.Az.Mgmt.CI.Common.Services
             }
         }
 
+        string GHAccessToken { get; set; }
         #endregion
 
         #region Constructor
-        public GitHubService() { }
+        //public GitHubService() { }
 
-        public GitHubService(NetSdkBuildTaskLogger utilLog) : base(utilLog) { }
+        //public GitHubService(NetSdkBuildTaskLogger utilLog) : base(utilLog) { }
+
+        public GitHubService(NetSdkBuildTaskLogger utilLog, string ghAccessToken) : base(utilLog)
+        {
+            GHAccessToken = ghAccessToken;
+        }
         #endregion
 
         #region Public Functions
@@ -171,18 +179,19 @@ namespace MS.Az.Mgmt.CI.Common.Services
         Octokit.GitHubClient OC { get; set; }
 
         NetSdkBuildTaskLogger Logger { get; set; }
-        
 
-        KeyVaultService KVSvc { get; set; }
+
+        //KeyVaultService KVSvc { get; set; }
 
         #endregion
 
         #region Constructor
-        public PrSvc(Octokit.GitHubClient ghc, NetSdkBuildTaskLogger log, KeyVaultService kvService)
+        //public PrSvc(Octokit.GitHubClient ghc, NetSdkBuildTaskLogger log, KeyVaultService kvService)
+        public PrSvc(Octokit.GitHubClient ghc, NetSdkBuildTaskLogger log)
         {
             Logger = log;
             OC = ghc;
-            KVSvc = kvService;
+            //KVSvc = kvService;
         }
         #endregion
 
@@ -330,11 +339,8 @@ namespace MS.Az.Mgmt.CI.Common.Services
         /// <returns></returns>
         public IEnumerable<string> GetPullRequestFileList(string repoName, long prNumber)
         {
-            Repository repo = GetRepository(repoName);
+            Repository repo = GetRepository(repoName);            
             return GetPullRequestFileList(repo.Id, prNumber);
-            //IReadOnlyList<PullRequestFile> prFiles = OC.PullRequest.Files(repo.Id, (int)prNumber).GetAwaiter().GetResult();
-            //IEnumerable<string> filePathList = prFiles.Select<PullRequestFile, string>((item) => item.FileName);
-            //return filePathList;
         }
 
         /// <summary>
@@ -475,17 +481,5 @@ namespace MS.Az.Mgmt.CI.Common.Services
         #endregion
 
         #endregion
-    }
-
-    public enum SupportedGitHubRepos
-    {
-        [Description("https://github.com/Azure/azure-sdk-for-net")]
-        SdkForNet_PublicRepo,
-
-        [Description("https://github.com/Azure/azure-sdk-for-net-pr")]
-        SdkForNet_PrivateRepo,
-
-        [Description("")]
-        UnSupported
     }
 }

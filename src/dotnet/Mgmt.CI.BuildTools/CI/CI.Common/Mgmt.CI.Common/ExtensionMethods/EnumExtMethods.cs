@@ -3,6 +3,7 @@
 
 namespace MS.Az.Mgmt.CI.BuildTasks.Common.ExtensionMethods
 {
+    using MS.Az.Mgmt.CI.Common.Models;
     using MS.Az.Mgmt.CI.Common.Services;
     using System;
     using System.ComponentModel;
@@ -65,7 +66,6 @@ namespace MS.Az.Mgmt.CI.BuildTasks.Common.ExtensionMethods
 
             return repoName;
         }
-
 
         #endregion
 

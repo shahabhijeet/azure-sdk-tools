@@ -4,9 +4,12 @@
 
 namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
 {
+    using MS.Az.Mgmt.CI.BuildTasks.Common;
     using MS.Az.Mgmt.CI.BuildTasks.Common.Base;
+    using MS.Az.Mgmt.CI.BuildTasks.Common.ExtensionMethods;
     using MS.Az.Mgmt.CI.BuildTasks.Common.Utilities;
     using MS.Az.Mgmt.CI.Common.ExtensionMethods;
+    using MS.Az.Mgmt.CI.Common.Models;
     using MS.Az.Mgmt.CI.Common.Services;
     using System;
     using System.Collections.Generic;
@@ -26,15 +29,22 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
 
         #region Properties
         #region task input properties
-        public string GH_PRNumber { get; set; }
+        public Int64 GH_PRNumber { get; set; }
 
-        public string GH_RepositoryId { get; set; }
+        public Int64 GH_RepositoryId { get; set; }
+
+        /// <summary>
+        /// Repository Url that is being used in browser
+        /// Not the SSH uri, neither clone uri
+        /// This can also contain relative Url
+        /// </summary>
+        public string GH_RepoHtmlUrl { get; set; }
 
         #endregion
 
         #region task output properties
 
-        string[] MultipleScopes { get; set; }
+        public string[] MultipleScopes { get; set; }
         #endregion
 
 
@@ -46,7 +56,8 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
             {
                 if(_ghSvc == null)
                 {
-                    _ghSvc = new GitHubService(TaskLogger);
+                    string accTkn = KVSvc.GetSecret(CommonConstants.AzureAuth.KVInfo.Secrets.GH_AdxSdkNetAcccesToken);
+                    _ghSvc = new GitHubService(TaskLogger, accTkn);
                 }
 
                 return _ghSvc;
@@ -61,29 +72,44 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
         #region Constructor
         public DetectRPScopeTask()
         {
-            Init();
+            GH_PRNumber = 0;
+            GH_RepoHtmlUrl = string.Empty;
+            GH_RepositoryId = 0;
         }
 
-        public DetectRPScopeTask(string RepoId, string PrNumber)
+        public DetectRPScopeTask(string repoHtmlUrl, Int64 prNumber) : this()
         {
-            GH_RepositoryId = RepoId;
-            GH_PRNumber = PrNumber;
-            Init();
+            GH_RepoHtmlUrl = repoHtmlUrl.Trim();
+            GH_PRNumber = prNumber;
+        }
+        public DetectRPScopeTask(Int64 repoId, Int64 prNumber) : this()
+        {
+            GH_RepositoryId = repoId;
+            GH_PRNumber = prNumber;
         }
 
         void Init()
         {
-            Check.NotEmptyNotNull(GH_RepositoryId, "GH_RepositoryId");
-            Check.NotEmptyNotNull(GH_PRNumber, "GH_PRNumber");
+            //string exceptionStringFormat = "Only numeric datatype is supported. Provided value has to be non-negative and non-zero '{0}'";
 
-            GH_RepositoryId = GH_RepositoryId.Trim();
-            GH_PRNumber = GH_PRNumber.Trim();
+            if(GH_RepositoryId <= 0)
+            {
+                if (string.IsNullOrWhiteSpace(GH_RepoHtmlUrl))
+                {
+                    throw new ArgumentException("Provide either Repository Id or Repositry Url");
+                }
+            }
 
-            Check.NonNegativeNumber(GH_PRNumber, "GH_PRNumber");
-            Check.NonNegativeNumber(GH_RepositoryId, "GH_RepositoryId");
+            if(GH_PRNumber <= 0)
+            {
+                throw new ArgumentException("Provide non-zero, non-negative PR Number");
+            }
 
-            RepoId = Convert.ToInt64(GH_RepositoryId);
-            PrNumber = Convert.ToInt64(GH_PRNumber);
+            //Check.NonNegativeNumber(GH_PRNumber, "GH_PRNumber");
+            //Check.NonNegativeNumber(GH_RepositoryId, "GH_RepositoryId");
+
+            //RepoId = Convert.ToInt64(GH_RepositoryId);
+            //PrNumber = Convert.ToInt64(GH_PRNumber);
         }
         #endregion
 
@@ -91,15 +117,21 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
         public override bool Execute()
         {
             base.Execute();
+            Init();
+
             List<string> validScopes = GetRPScopes();
 
-            if(validScopes.NotNullOrAny<string>())
+            if (validScopes.NotNullOrAny<string>())
             {
                 MultipleScopes = validScopes.ToArray<string>();
             }
 
             return TaskLogger.TaskSucceededWithNoErrorsLogged;
         }
+
+        #endregion
+
+        #region private functions
 
 
         /// <summary>
@@ -111,37 +143,166 @@ namespace MS.Az.Mgmt.CI.BuildTasks.BuildTasks.PreBuild
         {
             TaskLogger.LogInfo("Trying to get Pr info for PrNumber:'{0}'", PrNumber.ToString());
             FileSystemUtility fileSysUtil = new FileSystemUtility();
-            IEnumerable<string> prFileList = GHSvc.PR.GetPullRequestFileList(RepoId, PrNumber);
-            TaskLogger.LogInfo("List of files from PR", prFileList);
+            IEnumerable<string> prFileList = null;
+            List<string> finalScopePathList = new List<string>();
 
-            Dictionary<string, string> RPDirs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-            foreach(string filePath in prFileList)
+            if (!string.IsNullOrWhiteSpace(GH_RepoHtmlUrl))
             {
-                string slnDirPath = fileSysUtil.TraverUptoRootWithFileExtension(filePath);
+                TaskLogger.LogInfo("Trying to get Pr info using PrNumber:'{0}', GitHubUrl:'{1}'", GH_PRNumber.ToString(), GH_RepoHtmlUrl);
 
-                if (Directory.Exists(slnDirPath))
+                string repoName = string.Empty;
+                //Split the url
+                string[] tokens = GH_RepoHtmlUrl.Split(new char[] { Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+
+                //Get the last token which represents the repository name
+                if (tokens != null)
                 {
-                    if(!RPDirs.ContainsKey(slnDirPath))
-                    {
-                        RPDirs.Add(slnDirPath, slnDirPath);
-                    }
+                    repoName = tokens[tokens.Length - 1];
                 }
-                else
+
+                prFileList = GHSvc.PR.GetPullRequestFileList(repoName, GH_PRNumber);
+            }
+            else if (GH_RepositoryId > 0)
+            {
+                TaskLogger.LogInfo("Trying to get Pr info using PrNumber:'{0}', GitHub Repo Id:'{1}'", GH_PRNumber.ToString(), GH_RepositoryId.ToString());
+                prFileList = GHSvc.PR.GetPullRequestFileList(GH_RepositoryId, GH_PRNumber);
+            }
+
+            TaskLogger.LogInfo("List of files from PR", prFileList);
+            Dictionary<string, string> RPDirs = FindScopeFromPullRequestFileList(prFileList);
+
+            //Dictionary<string, string> RPDirs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            if (RPDirs.NotNullOrAny<KeyValuePair<string, string>>())
+            {
+                finalScopePathList = RPDirs.Select<KeyValuePair<string, string>, string>((item) => item.Key).ToList<string>();
+            }
+
+            
+            //foreach(string filePath in prFileList)
+            //{
+            //    string slnDirPath = fileSysUtil.TraverUptoRootWithFileExtension(filePath);
+
+            //    if (Directory.Exists(slnDirPath))
+            //    {
+            //        if(!RPDirs.ContainsKey(slnDirPath))
+            //        {
+            //            RPDirs.Add(slnDirPath, slnDirPath);
+            //        }
+            //    }
+            //    else
+            //    {
+            //        TaskLogger.LogWarning("RPScope Detection: '{0}' does not exists", slnDirPath);
+            //    }
+            //}
+
+            //TaskLogger.LogInfo("Number of RPs detected", RPDirs);
+
+            //return RPDirs.Select<KeyValuePair<string, string>, string>((item) => item.Key).ToList<string>();
+
+            return finalScopePathList;
+        }
+
+
+        /// <summary>
+        /// Get list of scopes from PR file list
+        /// </summary>
+        /// <returns></returns>
+        Dictionary<string, string> FindScopeFromPullRequestFileList(IEnumerable<string> prFileList)
+        {
+            Dictionary<string, string> scopeDictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            List<string> finalScopePathList = new List<string>();
+            // Assumption:
+            // GH API gives relative paths from root
+            // So we assume that we will get relative paths that starts after root
+
+            // Currently only supporting .NET SDK repos (both public and private repos)
+            // Taking hard dependency on current directory structure, any change in directory strucutre will affect this functionality
+            // Alternate way:
+            // We can always make Rest calls to find directory location for .sln file, but this approach will hamper the funtionality due to restriction on Github API rate limit
+            // On average .NET SDK PR contains 50 files (that will result in at least minimum 3 REST calls for every PR)
+            // hence we are taking hard dependency on directory structure and making certain assumptions based on the repository
+
+            //Assumption: we are interested in paths that start with sdk and we only need sdk/<rpName>/<pkgName>
+            foreach (string prFilePath in prFileList)
+            {
+                if (prFilePath.StartsWith("sdk", StringComparison.OrdinalIgnoreCase) || prFilePath.StartsWith("src", StringComparison.OrdinalIgnoreCase))
                 {
-                    TaskLogger.LogWarning("RPScope Detection: '{0}' does not exists", slnDirPath);
+                    string[] tokens = prFilePath.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    if (tokens.NotNullOrAny<string>())
+                    {
+                        if (tokens.Length >= 3)
+                        {
+                            string relScopePath = Path.Combine(tokens[0], tokens[1], tokens[2]);
+                            relScopePath = AdjustPlatformPaths(relScopePath);
+
+                            if (!relScopePath.EndsWith("_metadata", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (!scopeDictionary.ContainsKey(relScopePath))
+                                {
+                                    scopeDictionary.Add(relScopePath, prFilePath);
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            TaskLogger.LogInfo("Number of RPs detected", RPDirs);
+            //if (scopeDictionary.NotNullOrAny<KeyValuePair<string, string>>())
+            //{
+            //    finalScopePathList = scopeDictionary.Select<KeyValuePair<string, string>, string>((item) => item.Key).ToList<string>();
+            //}
 
-            return RPDirs.Select<KeyValuePair<string, string>, string>((item) => item.Key).ToList<string>();
+            return scopeDictionary;
+
+            //else
+            //{
+            //    TaskLogger.LogError("Provided repo '{0}' is not currently supported", repo.ToString());
+            //}
+}
+
+        string AdjustPlatformPaths(string givenPath)
+        {
+            string finalPath = givenPath;
+            if (DetectEnv.IsRunningUnderWindowsOS)
+            {
+                finalPath = givenPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+            }
+            else
+            {
+                finalPath = givenPath.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            }
+
+            return finalPath;
+        }
+
+        /// <summary>
+        /// Compares the Github Html url and returns supportedGithubRepo enum
+        /// TODO: Handle url that ends with '/' or find a robust way to compare html url regardless or trailing '/' or not
+        /// </summary>
+        /// <param name="githubHtmlUrl"></param>
+        /// <returns></returns>
+        SupportedGitHubRepos FindRepoEnum(string githubHtmlUrl)
+        {
+            if (githubHtmlUrl.EndsWith("/"))
+            {
+                githubHtmlUrl = githubHtmlUrl.TrimEnd('/');
+            }
+
+            if (SupportedGitHubRepos.SdkForNet_PrivateRepo.GetDescriptionAttributeValue().Equals(githubHtmlUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                return SupportedGitHubRepos.SdkForNet_PrivateRepo;
+            }
+            else if (SupportedGitHubRepos.SdkForNet_PrivateRepo.GetDescriptionAttributeValue().Equals(githubHtmlUrl, StringComparison.OrdinalIgnoreCase))
+            {
+                return SupportedGitHubRepos.SdkForNet_PublicRepo;
+            }
+            else
+            {
+                return SupportedGitHubRepos.UnSupported;
+            }
         }
         #endregion
-
-        #region private functions
-        //List<string> GetRPDirList(IE)
-        #endregion
-
     }
 }
